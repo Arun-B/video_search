@@ -3,11 +3,11 @@ from gevent import monkey; monkey.patch_all()
 from bottle import Bottle, template, static_file, run, request, route, redirect
 from preprocessor import plot_tokenizer, get_scene_stamp, get_subtitle_stamp, plot_shot_assigner, sub_shot_assigner, query_processor
 app = Bottle()
-plt_sent = plot_tokenizer()
+plot_sentences = plot_tokenizer()
 time_stamps, scene_stamps = get_scene_stamp()
 sub_stamps, sub_text = get_subtitle_stamp()
-# now sub_text and plt_sent contain processed subtitles and plot sentences
-plot_to_shot, idf, tf_idf = plot_shot_assigner(plt_sent, sub_text)
+# now sub_text and plot_sentences contain processed subtitles and plot sentences
+plot_to_shot, idf, tf_idf = plot_shot_assigner(plot_sentences, sub_text)
 fin_sub_to_shot = sub_shot_assigner(sub_stamps, scene_stamps)
 # subs contains the description of the links in html (subtitle text)
 shot_timestamps, subs, shots_list = None, None, None
@@ -41,7 +41,7 @@ def search_routine():
 @app.route('/search/<query>')
 def query_parse(query): # arbitrary name
     global shot_timestamps, subs, shots_list
-    shot_timestamps, subs, shots_list = query_processor(time_stamps, fin_sub_to_shot, idf, tf_idf, plt_sent, plot_to_shot, sub_text, query)
+    shot_timestamps, subs, shots_list = query_processor(time_stamps, fin_sub_to_shot, idf, tf_idf, plot_sentences, plot_to_shot, sub_text, query)
     print "the values are", shot_timestamps, subs
     if ((shot_timestamps, subs) == (-1, -1)):
         redirect("/search/query/404")

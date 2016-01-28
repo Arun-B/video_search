@@ -11,16 +11,21 @@ wordnet_lemmatizer = WordNetLemmatizer()                  # initialization of th
 from nltk.corpus import stopwords                         # initialization for stop word removal
 stop = stopwords.words('english')
 
+# tokenizer functionality common to all
+def tokenizer(to_tokenize):
+    temp = []
+    for token in to_tokenize:
+        temp_i = word_tokenize(token.lower())
+        temp_i = [j for j in temp_i if j not in ["...", ".", "!", "?", ",", "``", "--", "[", "]", "<", ">", "♪", "/i", "/", "-", ":"]]
+        temp_i = [str(wordnet_lemmatizer.lemmatize(j)) for j in temp_i]
+        temp_i = [j for j in temp_i if j not in stop]
+        temp.append(temp_i)
+    return temp    # return a pointer to the list
+
 # preprocessing of the plot sentences
 def plot_tokenizer(plot_txt="video_meta/test_plot.txt"):
-    plt_sent = []    # lemmatize + rid of punctuation & stopwords for each plot sentence & append to plt_sent
-    for sentence in sent_tokenize(open(plot_txt, "r").read()):
-        temp_sent = word_tokenize(sentence.lower())
-        temp_sent = [i for i in temp_sent if i not in ["...", ".", "!", "?", ",", "``", "--", "[", "]", "<", ">", "♪", "/i", "/", "-", ":"]]
-        temp_sent = [str(wordnet_lemmatizer.lemmatize(i)) for i in temp_sent]
-        temp_sent = [i for i in temp_sent if i not in stop]
-        plt_sent.append(temp_sent)
-    return plt_sent
+    plot_sentences = tokenizer(sent_tokenize(open(plot_txt, "r").read()))
+    return plot_sentences
 
 # preprocessing to get the scenes detected in the video
 # split time stamps by reading from file and append to scene_stamps
@@ -55,27 +60,23 @@ def get_subtitle_stamp(sub_file="video_meta/test_sub.srt"):
             temp_1 = float(temp_1[1])*60 + float("".join(temp_1[2].split(",")))/1000.0
             temp_2 = float(temp_2[1])*60 + float("".join(temp_2[2].split(",")))/1000.0
             sub_stamps.append((temp_1, temp_2))
-            # process the text to remove punctuation, stop words etc.
-            temp = word_tokenize(" ".join(buf[2:]).lower())
-            temp = [x for x in temp if x not in ["...", ".", "!", "?", ",", "``", "--", "[", "]", "<", ">", "♪", "/i", "/", "-", ":"]]
-            temp = [str(wordnet_lemmatizer.lemmatize(x)) for x in temp]
-            temp = [x for x in temp if x not in stop]
-            sub_text.append(temp)
+            sub_text.append(" ".join(buf[2:]))
             buf = []
+    sub_text = tokenizer(sub_text)  # perform tokenization after appending all subtitles in sub_text
     return sub_stamps, sub_text
 
-def plot_shot_assigner(plt_sent, sub_text):
+def plot_shot_assigner(plot_sentences, sub_text):
     # plot assignment to shots
-    plot_to_shot = [[] for i in range(len(plt_sent))]
+    plot_to_shot = [[] for i in range(len(plot_sentences))]
     tf = {}
     # find term frequency for all plot sentences
-    for index, plot_sentence in enumerate(plt_sent):
+    for index, plot_sentence in enumerate(plot_sentences):
         tf[index] = termFrequency(plot_sentence)
-    idf = inverseDocumentFrequency(plt_sent)
+    idf = inverseDocumentFrequency(plot_sentences)
     tf_idf = tfIdf(tf, idf)
     for index, sub_sent in enumerate(sub_text):
     # which plot sentence most similar with subtitle?
-        ret_val = sim(sub_sent, idf, tf_idf, len(plt_sent))
+        ret_val = sim(sub_sent, idf, tf_idf, len(plot_sentences))
         if ret_val == (-1, -1) or ret_val == (0, 'None'):    # query mein jhol hain
             continue
         else:
@@ -111,16 +112,16 @@ def sub_shot_assigner(sub_stamps, scene_stamps):
                 fin_sub_to_shot[index] = tup[1]
     return fin_sub_to_shot
 
-def query_processor(time_stamps, fin_sub_to_shot, idf, tf_idf, plt_sent, plot_to_shot, sub_text, q="mike"):
+def query_processor(time_stamps, fin_sub_to_shot, idf, tf_idf, plot_sentences, plot_to_shot, sub_text, q="mike"):
     temp_q = word_tokenize(q.lower())
     temp_q = [x for x in temp_q if x not in ["...", ".", "!", "?", ",", "``", "--", "[", "]", "<", ">", "♪", "/i", "/", "-"]]
     temp_q = [str(wordnet_lemmatizer.lemmatize(x)) for x in temp_q]
     temp_q = [x for x in temp_q if x not in stop]
-    max_sim, max_plt = sim(temp_q, idf, tf_idf, len(plt_sent))
+    max_sim, max_plt = sim(temp_q, idf, tf_idf, len(plot_sentences))
     if max_plt == "None":
         print "Your query does not match any scene in the video"
         return (-1, -1, -1)
-    print "For query", temp_q, "the highest sim. is with", plt_sent[max_plt], "with sim.", max_sim
+    print "For query", temp_q, "the highest sim. is with", plot_sentences[max_plt], "with sim.", max_sim
     shots, shots_final, subs, subs_final, ts_indices, ts_final = [], [], [], [], [], []
     # plot_to_shot gives the matching list of subtitle sentences -> [(35, 0.2656571164563915), (604, 0.2658152134299805), (619, 0.26629063540377135), (624, 0.44261725639867383), (687, 0.3904935983047358)]
     # for sorting with respect to second element of tuple
