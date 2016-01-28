@@ -1,3 +1,5 @@
+# read about monkey patch in the references folder in gevent.txt
+from gevent import monkey; monkey.patch_all()
 from bottle import Bottle, template, static_file, run, request, route, redirect
 from preprocessor import plot_tokenizer, get_scene_stamp, get_subtitle_stamp, plot_shot_assigner, sub_shot_assigner, query_processor
 app = Bottle()
@@ -189,4 +191,4 @@ def do_login():
     else:
         return "<p>Login failed.</p>"
 
-run(app, host="127.0.0.1", port=8080)
+run(app, host="127.0.0.1", port=8080, server="gevent")
