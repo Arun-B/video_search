@@ -8,7 +8,7 @@ sub_stamps, sub_text = get_subtitle_stamp()
 plot_to_shot, idf, tf_idf = plot_shot_assigner(plt_sent, sub_text)
 fin_sub_to_shot = sub_shot_assigner(sub_stamps, scene_stamps)
 # subs contains the description of the links in html (subtitle text)
-list_shots, subs, ts_indices = None, None, None
+shot_timestamps, subs, shots_list = None, None, None
 
 @app.route('/')
 def first_page():
@@ -38,16 +38,16 @@ def search_routine():
 
 @app.route('/search/<query>')
 def query_parse(query): # arbitrary name
-    global list_shots, subs, ts_indices
-    list_shots, subs, ts_indices = query_processor(time_stamps, fin_sub_to_shot, idf, tf_idf, plt_sent, plot_to_shot, sub_text, query)
-    print "the values are", list_shots, subs
-    if ((list_shots, subs) == (-1, -1)):
+    global shot_timestamps, subs, shots_list
+    shot_timestamps, subs, shots_list = query_processor(time_stamps, fin_sub_to_shot, idf, tf_idf, plt_sent, plot_to_shot, sub_text, query)
+    print "the values are", shot_timestamps, subs
+    if ((shot_timestamps, subs) == (-1, -1)):
         redirect("/search/query/404")
-    if (len(list_shots) >= 3):
+    if (len(shot_timestamps) >= 3):
         redirect("/search/query/1")
-    elif (len(list_shots) < 3 and len(list_shots) > 0):
+    elif (len(shot_timestamps) < 3 and len(shot_timestamps) > 0):
         redirect("/search/query/single")
-    elif (len(list_shots) == 0):  # replace with else
+    elif (len(shot_timestamps) == 0):  # replace with else
         redirect("/search/query/404")
 
 @app.route('/search/query/<res_number:int>')
@@ -56,28 +56,28 @@ def top_result(res_number):
     temp1, temp2, links = [], [], None
     if res_number == 1:
         links = [2, 3]
-        temp1.append(ts_indices[1])
-        temp1.append(ts_indices[2])
+        temp1.append(shots_list[1])
+        temp1.append(shots_list[2])
         temp2.append(subs[1])
         temp2.append(subs[2])
     elif res_number == 2:
         links = [1, 3]
-        temp1.append(ts_indices[0])
-        temp1.append(ts_indices[2])
+        temp1.append(shots_list[0])
+        temp1.append(shots_list[2])
         temp2.append(subs[0])
         temp2.append(subs[2])
     elif res_number == 3:   # or replace with else
         links = [1, 2]
-        temp1.append(ts_indices[0])
-        temp1.append(ts_indices[1])
+        temp1.append(shots_list[0])
+        temp1.append(shots_list[1])
         temp2.append(subs[0])
         temp2.append(subs[1])
-    return template("results_page", link_to=links, shot=list_shots[res_number-1], sub_fin=temp2, ts_ind=temp1)
+    return template("results_page", link_to=links, shot=shot_timestamps[res_number-1], sub_fin=temp2, ts_ind=temp1)
 
 @app.route('/search/query/single')
 def single_result():
     print "display only result"
-    return template("results_page_single", shot=list_shots[0])
+    return template("results_page_single", shot=shot_timestamps[0])
 
 @app.route('/search/query/404')
 def no_result():
@@ -86,7 +86,7 @@ def no_result():
                 <link href="results_assets/css/style.css" rel="stylesheet" type="text/css" media="all" />
               </head>
               <body>
-                <h2>There seems to be no scene matching your query</h2>
+                <h2><center>There seems to be no scene matching your query</h2>
                 <div class="page-nav">
                   <ul>
                     <li><a href="/search" >Go Back to Search</a></li>
