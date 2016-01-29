@@ -7,10 +7,10 @@ plot_sentences = plot_tokenizer()
 time_stamps, scene_stamps = get_scene_stamp()
 sub_stamps, sub_text = get_subtitle_stamp()
 # now sub_text and plot_sentences contain processed subtitles and plot sentences
-plot_to_shot, idf, tf_idf = plot_sub_assigner(plot_sentences, sub_text)
-fin_sub_to_shot = sub_shot_assigner(sub_stamps, scene_stamps)
-# subs contains the description of the links in html (subtitle text)
-shot_timestamps, subs, shots_list = None, None, None
+plot_to_sub, idf, tf_idf = plot_sub_assigner(plot_sentences, sub_text)
+sub_to_shot = sub_shot_assigner(sub_stamps, scene_stamps)
+# video_descr contains the description of the links in html (subtitle text)
+shot_timestamps, video_descr, shots_list = None, None, None
 
 @app.route('/')
 def first_page():
@@ -40,14 +40,14 @@ def search_routine():
 
 @app.route('/search/<query>')
 def query_parse(query): # arbitrary name
-    global shot_timestamps, subs, shots_list
-    shot_timestamps, subs, shots_list = query_processor(time_stamps, fin_sub_to_shot, idf, tf_idf, plot_sentences, plot_to_shot, sub_text, query)
-    print "the values are", shot_timestamps, subs
-    if ((shot_timestamps, subs) == (-1, -1)):
+    global shot_timestamps, video_descr, shots_list
+    shot_timestamps, video_descr, shots_list = query_processor(time_stamps, sub_to_shot, idf, tf_idf, plot_sentences, plot_to_sub, sub_text, query)
+    print "the values are", shot_timestamps, video_descr
+    if ((shot_timestamps, video_descr) == (-1, -1)):
         redirect("/search/query/404")
     if (len(shot_timestamps) >= 3):
-        redirect("/search/query/1")
-    elif (len(shot_timestamps) < 3 and len(shot_timestamps) > 0):
+        redirect("/search/query/0")
+    elif (len(shot_timestamps) != 0):  # lies between 0 and 3
         redirect("/search/query/single")
     elif (len(shot_timestamps) == 0):  # replace with else
         redirect("/search/query/404")
@@ -56,30 +56,24 @@ def query_parse(query): # arbitrary name
 def top_result(res_number):
     print "displaying result"
     temp1, temp2, links = [], [], None
-    if res_number == 1:
-        links = [2, 3]
-        temp1.append(shots_list[1])
-        temp1.append(shots_list[2])
-        temp2.append(subs[1])
-        temp2.append(subs[2])
-    elif res_number == 2:
-        links = [1, 3]
-        temp1.append(shots_list[0])
-        temp1.append(shots_list[2])
-        temp2.append(subs[0])
-        temp2.append(subs[2])
-    elif res_number == 3:   # or replace with else
+    if res_number == 0:
         links = [1, 2]
-        temp1.append(shots_list[0])
-        temp1.append(shots_list[1])
-        temp2.append(subs[0])
-        temp2.append(subs[1])
-    return template("results_page", link_to=links, shot=shot_timestamps[res_number-1], sub_fin=temp2, ts_ind=temp1)
+        temp1.extend([shots_list[1], shots_list[2]])
+        temp2.extend([video_descr[1], video_descr[2]])
+    elif res_number == 1:
+        links = [0, 2]
+        temp1.extend([shots_list[0], shots_list[2]])
+        temp2.extend([video_descr[0], video_descr[2]])
+    elif res_number == 2:              # or replace with else
+        links = [0, 1]
+        temp1.extend([shots_list[0], shots_list[1]])
+        temp2.extend([video_descr[0], video_descr[1]])
+    return template("results_page", link_to=links, shot_timestamp=shot_timestamps[res_number], sub_fin=temp2, ts_ind=temp1)
 
 @app.route('/search/query/single')
 def single_result():
     print "display only result"
-    return template("results_page_single", shot=shot_timestamps[0])
+    return template("results_page_single", shot_timestamp=shot_timestamps[0])
 
 @app.route('/search/query/404')
 def no_result():

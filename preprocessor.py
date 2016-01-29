@@ -39,8 +39,9 @@ def get_scene_stamp(video_file_path="test.mp4"):
     for line in open("video_meta/output.txt").readlines():
         fields = line.split('|')
         time_stamps.append(float(fields[4].split('=')[1]))
-    for i in range(len(time_stamps)-1):
-        scene_stamps.append((time_stamps[i], time_stamps[i+1]))
+        scene_stamps.append((time_stamps[-2], time_stamps[-1]))
+    # for i in range(len(time_stamps)-1):
+        # scene_stamps.append((time_stamps[i], time_stamps[i+1]))
     return time_stamps, scene_stamps
 
 def get_subtitle_stamp(sub_file_path="video_meta/test_sub.srt"):
@@ -118,22 +119,23 @@ def query_processor(time_stamps, sub_to_shot, idf, tf_idf, plot_sentences, plot_
         print "Your query does not match any scene in the video"
         return (-1, -1, -1)
     print "For query", temp_q, "the highest sim. is with", plot_sentences[max_plt], "with sim.", max_sim
-    temp_shots, shot_timestamps, temp_descr, video_descr, shots_list, shots_list = [], [], [], [], [], []
+    temp_shots, shot_timestamps, temp_descr, video_descr, shots_list, temp_shots_list = [], [], [], [], [], []
     # plot_to_sub gives the matching list of subtitle sentences -> [(35, 0.2656571164563915), (604, 0.2658152134299805), (619, 0.26629063540377135), (624, 0.44261725639867383), (687, 0.3904935983047358)]
     # for sorting with respect to second element of tuple
     # check here
-    for i in sorted(plot_to_sub[max_plt], key = lambda x: x[1]):        # assign final shot based on subtitle
+    sorted_plot_to_sub = sorted(plot_to_sub[max_plt], key = lambda x: x[1])
+    for i in sorted_plot_to_sub:        # assign final shot based on subtitle
         temp_descr.append(sub_text[i[0]])                                      # append subtitle number
-        shots_list.append(sub_to_shot[i[0]])                         # contains the shot numbers (1-135)
+        temp_shots_list.append(sub_to_shot[i[0]])                         # contains the shot numbers (1-135)
         temp_shots.append(int(time_stamps[sub_to_shot[i[0]]]))  # knowing that time stamps has the start time of scenes
     # get the unique items in temp_shots as there may be overlapping shots
     for item in temp_shots:
         if item not in shot_timestamps:
             shot_timestamps.append(item)
             video_descr.append(" ".join(temp_descr[temp_shots.index(item)]))
-    for item in shots_list:
+    for item in temp_shots_list:
         if item not in shots_list:
             shots_list.append(item)
-    print "The highest matching subtitle for above query :", sub_text[(sorted(plot_to_sub[max_plt], key = lambda x: x[1])[0][0])]
+    print "The highest matching subtitle for above query :", sub_text[sorted_plot_to_sub[0][0]]
     print "The matching shot numbers :", shots_list
     return shot_timestamps, video_descr, shots_list
