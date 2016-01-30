@@ -114,16 +114,16 @@ def sub_shot_assigner(sub_stamps, scene_stamps):
 
 def query_processor(time_stamps, sub_to_shot, idf, tf_idf, plot_sentences, plot_to_sub, sub_text, query="mike"):
     temp_q = tokenizer([query])[0]  # tokenizer accepts a list
-    max_sim, max_plt = sim(temp_q, idf, tf_idf, len(plot_sentences))
-    if max_plt == "None":
+    max_sim, max_sim_sentence = sim(temp_q, idf, tf_idf, len(plot_sentences))
+    if max_sim_sentence == "None":
         print "Your query does not match any scene in the video"
         return (-1, -1, -1)
-    print "For query", temp_q, "the highest sim. is with", plot_sentences[max_plt], "with sim.", max_sim
+    print "For query", temp_q, "the highest sim. is with", plot_sentences[max_sim_sentence], "with sim.", max_sim
     temp_shots, shot_timestamps, temp_descr, video_descr, shots_list, temp_shots_list = [], [], [], [], [], []
     # plot_to_sub gives the matching list of subtitle sentences -> [(35, 0.2656571164563915), (604, 0.2658152134299805), (619, 0.26629063540377135), (624, 0.44261725639867383), (687, 0.3904935983047358)]
     # for sorting with respect to second element of tuple
     # check here
-    sorted_plot_to_sub = sorted(plot_to_sub[max_plt], key = lambda x: x[1])
+    sorted_plot_to_sub = sorted(plot_to_sub[max_sim_sentence], key = lambda x: x[1])
     for i in sorted_plot_to_sub:        # assign final shot based on subtitle
         temp_descr.append(sub_text[i[0]])                                      # append subtitle number
         temp_shots_list.append(sub_to_shot[i[0]])                         # contains the shot numbers (1-135)
