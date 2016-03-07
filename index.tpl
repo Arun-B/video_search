@@ -116,28 +116,28 @@
                   <div class="single-wc-content wow fadeInUp">
                     <span class="fa fa-users wc-icon"></span>
                     <h4 class="wc-tittle">Anytime Anywhere</h4>
-                    <p>At vero eos et accusamus et iusto odio in dignissimos ducimus voluptatum in delenatque </p>
+                    <p>Use the service from your phone or browser, anytime, anywhere!</p>
                   </div>
                 </li>
                 <li>
                   <div class="single-wc-content wow fadeInUp">
                     <span class="fa fa-sellsy wc-icon"></span>
                     <h4 class="wc-tittle">fluidic interface</h4>
-                    <p>At vero eos et accusamus et iusto odio in dignissimos ducimus voluptatum in delenatque </p>
+                    <p>A fluidic interface that is intuitive and easy to use</p>
                   </div>
                 </li>
                 <li>
                   <div class="single-wc-content wow fadeInUp">
                     <span class="fa fa-line-chart wc-icon"></span>
                     <h4 class="wc-tittle">Pick your price</h4>
-                    <p>At vero eos et accusamus et iusto odio in dignissimos ducimus voluptatum in delenatque </p>
+                    <p>Chooose from a variety of options depending on what is convenient for you!</p>
                   </div>
                 </li>
                 <li>
                   <div class="single-wc-content wow fadeInUp">
                     <span class="fa fa-bus wc-icon"></span>
                     <h4 class="wc-tittle">No commitments</h4>
-                    <p>At vero eos et accusamus et iusto odio in dignissimos ducimus voluptatum in delenatque </p>
+                    <p>You can upgrade your subscription or walkaway anytime!</p>
                   </div>
                 </li>
               </ul>
@@ -161,9 +161,9 @@
                   <div class="title-area">
                     <h2 class="tittle">Additional <span>Features</span></h2>
                     <span class="tittle-line"></span>
-                    <p>ed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illotore itatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
+                    <p>No commercials — no one likes to watch commercials. We know, we know — in this day and age, there’s really no reason to watch them. If you have a DVR, you can fast-forward right through them. When you’re watching Flixnet, though, you don’t even have to pick up the remote. Watch entire movies and episodes of your favorite shows without a single commercial break. Priceless!</p>
 
-                    <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores e</p>
+                    <p>Huge Collection - Nothing to watch? You’ll never say that again if you have Flixnet. Flixnet has thousands of movies and TV episodes available at your fingertips. No matter what your tastes are, you’re bound to find plenty of movies and shows you love.</p>
                     <div class="about-btn-area">
                       <a href="#about" class="button button-default" data-text="KNOW MORE"><span>KNOW MORE</span></a>
                     </div>
@@ -184,7 +184,7 @@
     <div class="call-to-overlay">
       <div class="container">
         <div class="call-to-content wow fadeInUp">
-          <h2>Itna baap streaming service aur kahan? Lele na bhai!</h2>
+          <h2>The best streaming service in town!</h2>
           <a href="#pricing-table" class="button button-default" data-text="GET IT NOW"><span>GET IT NOW</span></a>
         </div>
       </div>
@@ -218,13 +218,13 @@
                   </div>
                   <div class="team-address">
                     <p>Arun Balchandran</p>
-                    <span>CEO & Founder</span>
+                    <span>Founder</span>
                   </div>
                 </li>
                 <li>
                   <div class="team-item team-img-2 wow fadeInUp">
                     <div class="team-info">
-                      <p> Laziness = better CODE!</p>
+                      <p>...</p>
                       <a href="#"><span class="fa fa-facebook"></span></a>
                       <a href="#"><span class="fa fa-twitter"></span></a>
                       <a href="#"><span class="fa fa-pinterest"></span></a>
@@ -233,13 +233,13 @@
                   </div>
                   <div class="team-address">
                     <p>Chinmay Chitnis</p>
-                    <span>Co-founder</span>
+                    <span>Co-Founder</span>
                   </div>
                 </li>
                 <li>
                   <div class="team-item team-img-3 wow fadeInUp">
                     <div class="team-info">
-                      <p> Bet Better Butterest</p>
+                      <p>Blah Blah Blah</p>
                       <a href="#"><span class="fa fa-facebook"></span></a>
                       <a href="#"><span class="fa fa-twitter"></span></a>
                       <a href="#"><span class="fa fa-pinterest"></span></a>
@@ -248,7 +248,7 @@
                   </div>
                   <div class="team-address">
                     <p>Saniya Alekar</p>
-                    <span>Lonely Housewife</span>
+                    <span>Co-Founder</span>
                   </div>
                 </li>
                   <li>
@@ -262,8 +262,8 @@
                     </div>
                   </div>
                   <div class="team-address">
-                    <p>Google</p>
-                    <span>Why not?</span>
+                    <p>Prof. Sarika Bobde</p>
+                    <span>Project Guide</span>
                   </div>
                 </li>
               </ul>
@@ -283,7 +283,7 @@
             <div class="title-area">
               <h2 class="tittle">Pricing table</h2>
               <span class="tittle-line"></span>
-              <p>unde omnis iste natus error sit voluptatem accusantium doloremque laudantium  aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto</p>
+              <p>Choose the plan that's the most convenient for you!</p>
             </div>
             <!-- service content -->
             <div class="pricing-table-content">
@@ -354,7 +354,7 @@
             <div class="title-area">
               <h2 class="tittle">Our blog</h2>
               <span class="tittle-line"></span>
-              <p>Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est</p>
+              <p>Get updated on the latest upcoming shows and other musings!</p>
             </div>
             <!-- From Blog content -->
             <div class="from-blog-content">
@@ -362,13 +362,13 @@
                 <div class="col-md-4">
                   <article class="single-from-blog">
                     <figure>
-                      <a href="blog-single.html"><img src="main_assets/images/the-sky.jpg" alt="img"></a>
+                      <a href="#"><img src="main_assets/images/the-sky.jpg" alt="img" style="width:361px;height:240px;"></a>
                     </figure>
                     <div class="blog-title"> <!-- This blog link is not supposed to work! -->
-                      <h2><a href="blog-single.html">Daredevil is the best</a></h2>
+                      <h2><a href="blog-single.html">Daredevil is the highest rated...</a></h2>
                       <p>Posted by <a class="blog-admin" href="#">admin</a> on <span class="blog-date">23rd july 2015</span></p>
                     </div>
-                    <p>Sed ut perspiciatis unde mnis is te natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis </p>
+                    <p>A new Daredevil season two poster has been released online and the man without fear ...</p>
                     <div class="blog-footer">
                       <a href="#"><span class="fa fa-comment"></span>18 Comments</a>
                       <a href="#"><span class="fa fa-thumbs-o-up"></span>35 Likes</a>
@@ -378,13 +378,13 @@
                 <div class="col-md-4">
                   <article class="single-from-blog">
                     <figure>
-                      <a href="blog-single.html"><img src="main_assets/images/photographer.jpg" alt="img"></a>
+                      <a href="#"><img src="main_assets/images/photographer.jpg" alt="img" style="width:361px;height:240px;"></a>
                     </figure>
                     <div class="blog-title">
-                      <h2><a href="blog-single.html">Friends nahi dekha? Kill yourself</a></h2>
+                      <h2><a href="blog-single.html">Friends : A throwback to friends!</a></h2>
                       <p>Posted by <a class="blog-admin" href="#">admin</a> on <span class="blog-date">23rd july 2015</span></p>
                     </div>
-                    <p>Sed ut perspiciatis unde mnis is te natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis </p>
+                    <p>"With a Little Help From My Friends" is a song written by the Beatles (and expertly covered by Joe Cocker) and it could easily be the subtitle for the thirty minute ...</p>
                     <div class="blog-footer">
                       <a href="#"><span class="fa fa-comment"></span>18 Comments</a>
                       <a href="#"><span class="fa fa-thumbs-o-up"></span>35 Likes</a>
@@ -394,13 +394,13 @@
                 <div class="col-md-4">
                   <article class="single-from-blog">
                     <figure>
-                      <a href="blog-single.html"><img src="main_assets/images/sealand.jpg" alt="img"></a>
+                      <a href="#"><img src="main_assets/images/sealand.jpg" alt="img"></a>
                     </figure>
                     <div class="blog-title">
-                      <h2><a href="blog-single.html">Dilwale kya chutyagiri hain?</a></h2>
+                      <h2><a href="blog-single.html">Dilwale : Movie Review</a></h2>
                       <p>Posted by <a class="blog-admin" href="#">admin</a> on <span class="blog-date">23rd july 2015</span></p>
                     </div>
-                    <p>Sed ut perspiciatis unde mnis is te natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis </p>
+                    <p>Love is in the air again as the eternal romantic couple Shah Rukh Khan and Kajol make a comeback with ...</p>
                     <div class="blog-footer">
                       <a href="#"><span class="fa fa-comment"></span>18 Comments</a>
                       <a href="#"><span class="fa fa-thumbs-o-up"></span>35 Likes</a>

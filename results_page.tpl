@@ -11,7 +11,7 @@
     <div class="vdo-log margin_bottom">
         <div class="video-player"><!-- autoplay can be removed if wanted -->
             <video width="1020" height="768" controls autoplay>
-            <source src="test.mp4#t={{shot_timestamp}}" type="video/mp4">
+            <source src="{{video_path}}#t={{shot_timestamp}}" type="video/mp4">
             Your browser does not support the video tag.
             </video>
         </div>
@@ -21,7 +21,7 @@
         <div class="heading"><h2>Other <span>Relevant Scenes</span></h2></div>
         <div class="vdo-list">
             <div class="vdo-thumb">
-                <a href="{{link_to[0]}}" style="background-image:url(thumbnails/thumb{{ts_ind[0]}}.png);"></a>
+                <a href="{{link_to[0]}}" style="background-image:url(thumbnails/BCS1E06/thumb{{ts_ind[0]}}.png);"></a>
             </div>
             <div class="vdo-info">
                 <div class="vdo-title"><a href="{{link_to[0]}}"><h3>{{sub_fin[0]}}</h3></a></div>
@@ -31,7 +31,7 @@
         </div>
         <div class="vdo-list">
             <div class="vdo-thumb">
-                <a href="{{link_to[1]}}" style="background-image:url(thumbnails/thumb{{ts_ind[1]}}.png);"></a>
+                <a href="{{link_to[1]}}" style="background-image:url(thumbnails/BCS1E06/thumb{{ts_ind[1]}}.png);"></a>
             </div>
             <div class="vdo-info">
                 <div class="vdo-title"><a href="{{link_to[1]}}"><h3>{{sub_fin[1]}}</h3></a></div>

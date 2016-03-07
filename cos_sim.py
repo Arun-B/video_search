@@ -7,21 +7,21 @@ def termFrequency(document):                     # output the normalized term fr
             termFrequencyDict[word] = document.count(word)/float(len(document))
     return termFrequencyDict
 
-def inverseDocumentFrequency(document_list):
+def inverseDocumentFrequency(documents):
     tempSet = set()
     idfDict, tempDict = {}, {}
     wordsList = []
-    for doc in document_list:
+    for doc in documents:
         wordsList.append(set(doc))
         tempSet |= wordsList[-1]                 # union operation
     for word in tempSet:                         # tempSet has all the unique words from all documents
         tempDict[word] = 0.0
     for word in tempDict:
-        for i in range(len(document_list)):
+        for i in range(len(documents)):
             if word in wordsList[i]:             # number of documents in which the word has appeared
                 tempDict[word] += 1
     for word in tempDict:
-            idfDict[word] = 1.0 + math.log(float(len(document_list))/tempDict[word])
+            idfDict[word] = 1.0 + math.log(float(len(documents))/tempDict[word])
     return idfDict
 
 def tfIdf(tf, idf):
