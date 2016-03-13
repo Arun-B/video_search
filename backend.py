@@ -1,5 +1,6 @@
 # read about monkey patch in the references folder in gevent.txt
 from gevent import monkey; monkey.patch_all()
+import json, io, chardet, unicodedata
 from bottle import Bottle, template, static_file, run, request, route, redirect
 from preprocessor import fetch_plot_data, get_scene_stamps, fetch_subtitle_data, plot_sub_assigner, sub_shot_assigner, plot_shot_assigner, similarity_fn1
 # from preprocessor import get_scene_stamps, fetch_subtitle_data, sub_to_char, sub_shot_assigner, shot_to_speakers, fetch_plot_data, plot_to_char, plot_to_shot, query_processor_sim2
@@ -14,15 +15,132 @@ app = Bottle()
 # for i in speakers_in_plt_sent:
 #     speakers_in_plt_sent[i] = [item.upper() for item in speakers_in_plt_sent[i]]
 # plt_to_shot = plot_to_shot(speakers_in_plt_sent, shot_to_speaker)
-# working only on the episode 6 of BCS
-video_file_path = "BCS/BCS1E06.mp4"
-plot_sentences = fetch_plot_data("video_meta/BCS/BCS1E06_plot.txt")
-time_stamps, scene_stamps = get_scene_stamps(video_file_path)
-sub_stamps, sub_text, untouched_sub_text = fetch_subtitle_data("video_meta/BCS/BCS1E06.srt")
-# now sub_text and plot_sentences contain processed subtitles and plot sentences
-plot_to_sub, idf, tf_idf = plot_sub_assigner(plot_sentences, sub_text)
-sub_to_shot = sub_shot_assigner(sub_stamps, scene_stamps)
-plot_to_shot = plot_shot_assigner(plot_to_sub, sub_to_shot)
+# change this to the path of your Videos and subtitles
+import json, io, chardet, unicodedata
+from preprocessor import fetch_plot_data, fetch_subtitle_data, get_scene_stamps, plot_sub_assigner, sub_shot_assigner, plot_shot_assigner, similarity_fn1
+DIR_PLOTS = '/Users/arun/Movies/BetterCallSaul/BCS_PLOTS'
+DIR_STAMPS = '/Users/arun/Movies/BetterCallSaul/BCS_STAMPS'
+DIR_SUBS = '/Users/arun/Movies/BetterCallSaul/BCS_SUBS'
+DIR_VIDS = '/Users/arun/Movies/BetterCallSaul'
+DIR_PLTSUB = '/Users/arun/Movies/BetterCallSaul/BCS_PLTSUB'
+DIR_SUBSHOT = '/Users/arun/Movies/BetterCallSaul/BCS_SUBSHOT'
+DIR_PLOTSHOT = '/Users/arun/Movies/BetterCallSaul/BCS_PLOTSHOT'
+file_names = ["BCS1E01", "BCS1E02", "BCS1E03", "BCS1E04", "BCS1E05", "BCS1E06", "BCS1E07", "BCS1E08", "BCS1E09", "BCS1E10"] # to ignore the DS file in mac
+no_episodes = len(file_names)
+
+video_file_names = ["Better.Call.Saul.S01E01.HDTV.x264-KILLERS", "better.call.saul.102.hdtv-lol", "better.call.saul.103.hdtv-lol", "better.call.saul.104.hdtv-lol", "better.call.saul.105.hdtv-lol", "BCS1E06", "better.call.saul.S01E07", "BCS1E08", "BCS1E09", "better.call.saul.110.hdtv-lol"]
+
+# for multi episode processing
+time_stamps, scene_stamps = [], []
+for vid_file in video_file_names:
+    time_stamps_path = DIR_STAMPS+"/"+vid_file+"_proc_ts.json"
+    scene_stamps_path = DIR_STAMPS+"/"+vid_file+"_proc_ss.json"
+    try:
+        with open(time_stamps_path, 'r') as fp1, open(scene_stamps_path, 'r') as fp2:
+            time_stamps.append(json.load(fp1))
+            scene_stamps.append(json.load(fp2))
+    except IOError:
+        with open(time_stamps_path, 'w') as fp1, open(scene_stamps_path, 'w') as fp2:
+            t1, t2 = get_scene_stamps(DIR_VIDS+"/"+vid_file+".mp4")
+            time_stamps.append(t1)
+            scene_stamps.append(t2)
+            json.dump(time_stamps[-1], fp1)
+            json.dump(scene_stamps[-1], fp2)
+
+plot_sentences = []
+for plot in file_names:
+    # storing the processed part in json
+    file_path = DIR_PLOTS+"/"+plot+"_proc_plot.json"
+    try:
+        with open(file_path, 'r') as fp:
+            plot_sentences.append(json.load(fp))
+    except IOError:
+        with open(file_path, 'w') as fp:
+            plot_sentences.append(fetch_plot_data(DIR_PLOTS+"/"+plot+"_plot.txt"))
+            json.dump(plot_sentences[-1], fp)
+
+# should run only the first time!
+# preprocess the srt files and convert them to utf-8
+# supposed to be non destructive (but f that)
+# for f in file_names:
+#     file_path = DIR_SUBS+"/"+f+".srt"
+#     if chardet.detect("file_path")["encoding"] != "utf-8"
+#         data = open(file_path).read()
+#         with open(file_path, "w") as fp:
+#             fp.write(data.decode('Windows-1252').encode('utf-8'))
+#             fp.write(data.decode(char.detect("file_path")["encoding"]).encode("utf-8"))
+# alternatively for the last line -> instead of windows use detected value
+
+sub_stamps, sub_text, untouched_sub_text = [], [], []
+for sub_file in file_names:
+    # storing the processed part in json
+    sub_stamps_path = DIR_SUBS+"/"+sub_file+"_proc_sub_st.json"
+    sub_text_path = DIR_SUBS+"/"+sub_file+"_proc_sub_tx.json"
+    sub_unttext_path = DIR_SUBS+"/"+sub_file+"_proc_sub_untx.json"
+    temp_path = DIR_SUBS+"/"+"temp.srt"
+    try:
+        with open(sub_stamps_path, 'r') as fp1, open(sub_text_path, 'r') as fp2, open(sub_unttext_path, 'r') as fp3:
+            sub_stamps.append(json.load(fp1))
+            sub_text.append(json.load(fp2))
+            untouched_sub_text.append(json.load(fp3))
+    except IOError:
+        with open(sub_stamps_path, 'w') as fp1, open(sub_text_path, 'w') as fp2, open(sub_unttext_path, 'w') as fp3:
+            with io.open(DIR_SUBS+"/"+sub_file+".srt", "r", encoding="utf-8") as sub,  open(temp_path, 'w') as temp_fp:
+                # temporary file containing semi preprocessed subtitle
+                temp_fp.write(unicodedata.normalize("NFKD", sub.read()).encode("ascii", "ignore"))  # replace unicode chars with closest equivalents
+            t1, t2, t3 = fetch_subtitle_data(temp_path)
+            sub_stamps.append(t1)
+            sub_text.append(t2)
+            untouched_sub_text.append(t3)
+            json.dump(sub_stamps[-1], fp1)
+            json.dump(sub_text[-1], fp2)
+            json.dump(untouched_sub_text[-1], fp3)
+
+# for plot to subtitle and subtitle to shot
+plot_to_sub = [None for i in range(no_episodes)]
+idf = [None for i in range(no_episodes)]
+tf_idf = [None for i in range(no_episodes)]
+for index, vid_file in enumerate(file_names):
+    plot_to_sub_path = DIR_PLTSUB+"/"+vid_file+"_proc_pltsub.json"
+    idf_path = DIR_PLTSUB+"/"+vid_file+"_idf.json"
+    tf_idf_path = DIR_PLTSUB+"/"+vid_file+"_tf_idf.json"
+    try:
+        with open(plot_to_sub_path, 'r') as fp1, open(idf_path, 'r') as fp2, open(tf_idf_path, 'r') as fp3:
+            plot_to_sub[index] = json.load(fp1)
+            idf[index] = json.load(fp2)
+            tf_idf[index] = {int(k):v for k,v in json.load(fp3).items()}
+    except IOError:
+        with open(plot_to_sub_path, 'w') as fp1, open(idf_path, 'w') as fp2, open(tf_idf_path, 'w') as fp3:
+            t1, t2, t3 = plot_sub_assigner(plot_sentences[index], sub_text[index])
+            plot_to_sub[index], idf[index], tf_idf[index] = t1, t2, t3
+            json.dump(plot_to_sub[index], fp1)
+            json.dump(idf[index], fp2)
+            json.dump(tf_idf[index], fp3)
+
+sub_to_shot = [None for i in range(no_episodes)]
+for index, vid_file in enumerate(file_names):
+    # storing the processed part in json
+    sub_to_shot_path = DIR_SUBSHOT+"/"+vid_file+"_proc_subshot.json"
+    try:
+        with open(sub_to_shot_path, 'r') as fp1:
+            sub_to_shot[index] = json.load(fp1)
+    except IOError:
+        with open(sub_to_shot_path, 'w') as fp1:
+            sub_to_shot[index] = sub_shot_assigner(sub_stamps[index], scene_stamps[index])
+            json.dump(sub_to_shot[index], fp1)
+
+plot_to_shot = [None for i in range(no_episodes)]
+for index, vid_file in enumerate(file_names):
+    # storing the processed part in json
+    plot_to_shot_path = DIR_PLOTSHOT+"/"+vid_file+"_proc_plotshot.json"
+    try:
+        with open(plot_to_shot_path, 'r') as fp1:
+            plot_to_shot[index] = json.load(fp1)
+    except IOError:
+        with open(plot_to_shot_path, 'w') as fp1:
+            plot_to_shot[index] = plot_shot_assigner(plot_to_sub[index], sub_to_shot[index])
+            json.dump(plot_to_shot[index], fp1)
+
 # video_descr contains the description of the links in html (subtitle text)
 shot_timestamps, video_descr, shots_list = None, None, None
 
@@ -38,46 +156,48 @@ def index_page():
 def login():
     return template("login")
 
-@app.route('/show_episodes')
-def search():
-    return template("episode_list")
-
 @app.route('/show_select')
 def search():
     return template("list_of_shows")
 
-@app.route('/view_episode')
-def show_episode():
-    print "display episode"
-    return template("episode_display", video_path=video_file_path)
-
-@app.route('/search')
+@app.route('/show_episodes')
 def search():
+    return template("episode_list")
+
+@app.route('/view_episode/<episode_num:int>')
+def show_episode(episode_num):
+    print "display episode"
+    return template("episode_display", video_path=DIR_VIDS+"/"+video_file_names[episode_num-1]+".mp4")
+
+@app.route('/search/<episode_num:int>')
+def search(episode_num):
     return template("search_page")
 
-@app.route('/search', method='POST')  # get method here...
-def search_routine():
+@app.route('/search/<episode_num:int>', method='POST')  # get method here...
+def search_routine(episode_num):
     query = request.forms.get('searcher')
     print "You searched for :", query
-    redirect("/search/"+query)
+    redirect("/search/"+str(episode_num)+"/"+query)
 
-@app.route('/search/<query>')
-def query_parse(query): # arbitrary name
+@app.route('/search/<episode_num:int>/<query>')
+def query_parse(episode_num, query): # arbitrary name
+    # caching of 3 queries for faster retrieval can be done here...
     global shot_timestamps, video_descr, shots_list
-    shot_timestamps, video_descr, shots_list = similarity_fn1(time_stamps, sub_to_shot, idf, tf_idf, plot_sentences, plot_to_sub, sub_text, untouched_sub_text, plot_to_shot, query)
+    print "searching through episode number :", episode_num
+    shot_timestamps, video_descr, shots_list = similarity_fn1(time_stamps[episode_num-1], sub_to_shot[episode_num-1], idf[episode_num-1], tf_idf[episode_num-1], plot_sentences[episode_num-1], plot_to_sub[episode_num-1], sub_text[episode_num-1], untouched_sub_text[episode_num-1], plot_to_shot[episode_num-1], query)
     # shot_timestamps, video_descr, shots_list = query_processor_sim2(plot_sentences, plt_to_shot, time_stamps, query)
     print "The values are", shot_timestamps, video_descr
     if ((shot_timestamps, video_descr) == (-1, -1)):
-        redirect("/search/query/404")
+        redirect("/search/"+str(episode_num)+"/query/NaQ")
     if (len(shot_timestamps) >= 3):
-        redirect("/search/query/0")
+        redirect("/search/"+str(episode_num)+"/query/0")
     elif (len(shot_timestamps) != 0):  # lies between 0 and 3
-        redirect("/search/query/single")
+        redirect("/search/"+str(episode_num)+"/query/single")
     elif (len(shot_timestamps) == 0):  # replace with else
-        redirect("/search/query/404")
+        redirect("/search/"+str(episode_num)+"/query/NaQ")
 
-@app.route('/search/query/<res_number:int>')
-def top_result(res_number):
+@app.route('/search/<episode_num:int>/query/<res_number:int>')
+def top_result(episode_num, res_number):
     print "displaying result"
     temp1, temp2, links = [], [], None
     if res_number == 0:
@@ -92,66 +212,59 @@ def top_result(res_number):
         links = [0, 1]
         temp1.extend([shots_list[0], shots_list[1]])
         temp2.extend([video_descr[0], video_descr[1]])
-    return template("results_page", link_to=links, shot_timestamp=shot_timestamps[res_number], sub_fin=temp2, ts_ind=temp1, video_path=video_file_path)
+    return template("results_page", link_to=links, shot_timestamp=shot_timestamps[res_number], sub_fin=temp2, ts_ind=temp1, ep_name=file_names[episode_num-1], ep_num=str(episode_num), video_path=DIR_VIDS+"/"+video_file_names[episode_num-1]+".mp4")
 
-@app.route('/search/query/single')
-def single_result():
+@app.route('/search/<episode_num:int>/query/single')
+def single_result(episode_num):
     print "display only result"
-    return template("results_page_single", shot_timestamp=shot_timestamps[0], video_path=video_file_path)
+    return template("results_page_single", shot_timestamp=shot_timestamps[0], video_path=DIR_VIDS+"/"+video_file_names[episode_num-1]+".mp4", ep_num=str(episode_num))
 
-@app.route('/search/query/404')
-def no_result():
+@app.route('/search/<episode_num:int>/query/NaQ')
+def no_result(episode_num):
     print "no results to display"
-    return '''<head>
-                <link href="results_assets/css/style.css" rel="stylesheet" type="text/css" media="all" />
-              </head>
-              <body>
-                <h2><center>There seems to be no scene matching your query</h2>
-                <div class="page-nav">
-                  <ul>
-                    <li><a href="/search" >Go Back to Search</a></li>
-                  </ul>
-                </div>
-              </body>'''
+    return template("no_results", ep_num=str(episode_num))
 
 # get request for thumbnails
-@app.route('/search/query/thumbnails/BCS1E06/<filename>')
-def static_server(filename):
-    return static_file(filename, root="thumbnails/BCS1E06")
+# @app.route('/search/<episode_num:int>/query/thumbnails/BCS1E06/<filename>')
+# def static_server(episode_num, filename):
+#     return static_file(filename, root="thumbnails/BCS1E06")
 
 # display episode
-@app.route('/results_assets/css/<filename>')
+@app.route('/view_episode/results_assets/css/<filename>')
 def static_server(filename):
     return static_file(filename, root="results_assets/css")
 
-@app.route('/results_assets/images/<filename>')
-def static_server(filename):
-    return static_file(filename, root="results_assets/images")
+# @app.route('/results_assets/images/<filename>')
+# def static_server(filename):
+#     return static_file(filename, root="results_assets/images")
 
-@app.route('/BCS/<filename>')
-def static_server(filename):
-    return static_file(filename, root="BCS")
+# @app.route('/BCS/<filename>')
+# def static_server(filename):
+#     return static_file(filename, root="BCS")
 
 # results page specific assets -> reduce length in the future (wildcard)
-@app.route('/search/query/results_assets/css/<filename>')
-def static_server(filename):
+@app.route('/search/<episode_num:int>/query/results_assets/css/<filename>')
+def static_server(episode_num, filename):
     return static_file(filename, root="results_assets/css")
 
-@app.route('/search/query/results_assets/images/<filename>')
-def static_server(filename):
+@app.route('/search/<episode_num:int>/query/results_assets/images/<filename>')
+def static_server(episode_num, filename):
     return static_file(filename, root="results_assets/images")
 
-@app.route('/search/query/<filename>')
-def static_server(filename):
-    return static_file(filename, root="")
-
-@app.route('/search/query/BCS/<filename>')
-def static_server(filename):
-    return static_file(filename, root="BCS")
-
-@app.route('/search/results_assets/css/<filename>')
-def static_server(filename):
-    return static_file(filename, root="results_assets/css")
+@app.route('/Users/arun/Movies/BetterCallSaul/thumbnails/<ep_name>/<filename>')
+def static_server(ep_name, filename):
+    return static_file(filename, root="/Users/arun/Movies/BetterCallSaul/thumbnails/"+ep_name)
+# @app.route('/search/query/<filename>')
+# def static_server(filename):
+#     return static_file(filename, root="")
+#
+# @app.route('/search/query/BCS/<filename>')
+# def static_server(filename):
+#     return static_file(filename, root="BCS")
+#
+# @app.route('/search/results_assets/css/<filename>')
+# def static_server(filename):
+#     return static_file(filename, root="results_assets/css")
 
 # for show select specific assets
 @app.route('/list_shows_assets/sass/<filename>')
@@ -183,6 +296,9 @@ def static_server(filename):
     return static_file(filename, root="list_shows_assets/js/min")
 
 # list of episodes specific assets
+@app.route('/Users/arun/Movies/BetterCallSaul/<filename>')
+def static_server(filename):
+    return static_file(filename, root="/Users/arun/Movies/BetterCallSaul")
 
 @app.route('/episode_list_assets/sass/<filename>')
 def static_server(filename):
@@ -225,7 +341,7 @@ def static_server(filename):
     return static_file(filename, root="episode_list_assets/js/ie")
 
 # search page specific assets -> reduce length in the future (wildcard)
-@app.route('/search_assets/css/<filename>')
+@app.route('/search/search_assets/css/<filename>')
 def static_server(filename):
     return static_file(filename, root="search_assets/css")
 

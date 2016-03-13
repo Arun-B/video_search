@@ -19,7 +19,7 @@
     </div>
     <div class="page-nav">
         <ul>
-            <li><a href="/search" >Go Back to Search</a></li>
+            <li><a href="/search/{{ep_num}}" >Go Back to Search</a></li>
         </ul>
     </div>
 </div>

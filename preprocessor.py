@@ -5,45 +5,49 @@
 import os, re
 from cos_sim import termFrequency, inverseDocumentFrequency, tfIdf, sim
 from nltk.tokenize import sent_tokenize, word_tokenize    # nltk sentence and word tokenizers
-from nltk.stem import WordNetLemmatizer                   # for lemmatization
+from nltk.stem import WordNetLemmatizer
 wordnet_lemmatizer = WordNetLemmatizer()                  # initialization of the lemmatizer
-from nltk.corpus import stopwords                         # initialization for stop word removal
-stop = stopwords.words('english')
+from nltk.corpus import stopwords                         # get list of stop words
 from nltk import pos_tag, ne_chunk
 
-# tokenizer functionality common to all
+# tokenizer functionality common to all functions
 def tokenizer(to_tokenize):  # assumes that object to tokenize is a list
     temp = []
     for token in to_tokenize:
-        temp_i = word_tokenize(token)
-        temp_i = word_tokenize(token.lower())  # needs to be commented for similarity function 2
-        temp_i = [j for j in temp_i if j not in ["...", ".", "!", "?", ",", "``", "--", "[", "]", "<", ">", "♪", "/i", "/", "(", ")", "-", ":"]]
-        temp_i = [str(wordnet_lemmatizer.lemmatize(j)) for j in temp_i]
-        temp_i = [j for j in temp_i if j not in stop]
+        temp_i = word_tokenize(token.lower()) # needs to be lowered for sim. 2
+        temp_i = [j for j in temp_i if j not in ["...", "''",  ".", "!", "?", ",", "``", "--", "[", "]", "<", ">", "♪", "/i", "/", "(", ")", "-", ":", "¡", "¿"]]
+        temp_i = [wordnet_lemmatizer.lemmatize(j) for j in temp_i]
+        temp_i = [j for j in temp_i if j not in stopwords.words('english')]
         temp.append(temp_i)
     return temp    # return a pointer to the list
 
 # preprocessing of the plot sentences
-def fetch_plot_data(plot_txt_path="video_meta/test_plot.txt"):
+def fetch_plot_data(plot_txt_path):
     plot_sentences = tokenizer(sent_tokenize(open(plot_txt_path, "r").read()))
+    # have to work on error of only single character in sentence
+    # get rid of empty sentences
+    plot_sentences = [sent for sent in plot_sentences if (sent != [] and len(sent) != 1) ]
     return plot_sentences
 
 # preprocessing to get the scenes detected in the video
 # split time stamps by reading from file and append to scene_stamps
 # scene stamps contain the scene boundaries
-def get_scene_stamps(video_file_path="test.mp4"):
+def get_scene_stamps(video_file_path):
     # stores its output in the output.txt for further processing
-    if (os.stat("video_meta/BCS/output6.txt").st_size == 0):
-        func_str = 'ffprobe -show_frames -of compact=p=0 -f lavfi "movie=BCS/BCS1E06.mp4,select=gt(scene\,0.4)" > video_meta/BCS/output6.txt'
-        os.system(func_str)    # call to the os to process above command
+    # can os.system be replaced with something faster?
+    # do this always? # output.txt stored in video_search folder
+    with open("output.txt", "w") as fp:
+         fp.write("")  # create a blank file for temporary use
+    func_str = 'ffprobe -show_frames -of compact=p=0 -f lavfi "movie='+video_file_path+',select=gt(scene\,0.4)" > output.txt'
+    os.system(func_str)    # call to the os to process above command
     time_stamps, scene_stamps = [0], []
-    for line in open("video_meta/BCS/output6.txt").readlines():
+    for line in open("output.txt").readlines():
         fields = line.split('|')
         time_stamps.append(float(fields[4].split('=')[1]))
         scene_stamps.append((time_stamps[-2], time_stamps[-1]))
     return time_stamps, scene_stamps
 
-def fetch_subtitle_data(sub_file_path="video_meta/test_sub.srt"):
+def fetch_subtitle_data(sub_file_path):
     # to get subtitle stamps
     sub_stamps, sub_text, buf = [], [], []
     subs = open(sub_file_path).readlines()
@@ -83,7 +87,7 @@ def plot_sub_assigner(plot_sentences, sub_text):  # used by sim. function 1
             plot_to_sub[similarity[1]].append((index, similarity[0]))
     # sort plot_to_sub before return
     for i in range(len(plot_to_sub)):
-        plot_to_sub[i] = sorted(plot_to_sub[i], key = lambda x: x[1])
+        plot_to_sub[i] = sorted(plot_to_sub[i], key = lambda x: x[1], reverse=True)
     return plot_to_sub, idf, tf_idf
 
 def sub_shot_assigner(sub_stamps, scene_stamps):
@@ -128,57 +132,57 @@ def plot_shot_assigner(plot_to_sub, sub_to_shot):
     # now plot_to_shot has the sorted list of shots
     return plot_to_shot
 
-def plot_to_char(plot_sentences):
-    speakers_in_plt_sent = {}
-    for i in range(len(plot_sentences)):
-        speakers_in_plt_sent[i] = []
-    for index, sentence in enumerate(plot_sentences):  # hacked away
-        pos_tags = pos_tag(sentence)
-        temp = ne_chunk(pos_tags).pos()
-        for words in temp:
-            if words[1] == "PERSON":
-                speakers_in_plt_sent[index].append(words[0][0])
-    return speakers_in_plt_sent
-
-def sub_to_char(transc_path, sub_text):
-    transc, speakers, dialogs = [], [], []
-    t = open(transc_path, "r").readlines()
-    #remove lines without ':' so that actions, narrations are removed
-    for line in t:
-        if ':' in line:                       # transc contains lines without actions/narrations
-            transc.append(line.strip().split(":"))  # strip to get rid of the newline characters
-            if len(transc[-1]) > 10:
-                transc.remove(transc[-1])           # get rid of the last element if char. name > 10
-    for item in transc:                             # make seperate lists of items and transcripts
-        speakers.append(item[0])
-        dialogs.append(item[1])
-    dialogs, sub_to_speaker = tokenizer(dialogs), {}
-
-    sub_to_speaker = [0]*len(sub_text)
-    for sub_index, sub in enumerate(sub_text):
-        for dialog_index, dialog in enumerate(dialogs):
-            cnt = 0
-            for word in sub:
-                if word in dialog:  # like trigram comparison
-                    cnt += 1
-                    if sub_to_speaker[sub_index] == 0:
-                        if cnt >= 3 or cnt == len(sub):   # len(sub) because a subtitle may be 2/1 words
-                            sub_to_speaker[sub_index] = speakers[dialog_index]
-                        else:
-                            sub_to_speaker[sub_index] = 0
-                else:
-                    cnt = 0
-    return sub_to_speaker
-
-def shot_to_speakers(sub_to_shot, sub_to_speaker, len_time_stamps):
-    shot_to_speaker = {}
-    for i in range(len_time_stamps):
-        shot_to_speaker[i] = []
-    for index, character in enumerate(sub_to_speaker):
-        shot_to_speaker[sub_to_shot[index]].append(character)
-    for i in range(len(shot_to_speaker)):
-        shot_to_speaker[i] = list(set([item for item in shot_to_speaker[i] if item != 0]))
-    return shot_to_speaker
+# def plot_to_char(plot_sentences):
+#     speakers_in_plt_sent = {}
+#     for i in range(len(plot_sentences)):
+#         speakers_in_plt_sent[i] = []
+#     for index, sentence in enumerate(plot_sentences):  # hacked away
+#         pos_tags = pos_tag(sentence)
+#         temp = ne_chunk(pos_tags).pos()
+#         for words in temp:
+#             if words[1] == "PERSON":
+#                 speakers_in_plt_sent[index].append(words[0][0])
+#     return speakers_in_plt_sent
+#
+# def sub_to_char(transc_path, sub_text):
+#     transc, speakers, dialogs = [], [], []
+#     t = open(transc_path, "r").readlines()
+#     #remove lines without ':' so that actions, narrations are removed
+#     for line in t:
+#         if ':' in line:                       # transc contains lines without actions/narrations
+#             transc.append(line.strip().split(":"))  # strip to get rid of the newline characters
+#             if len(transc[-1]) > 10:
+#                 transc.remove(transc[-1])           # get rid of the last element if char. name > 10
+#     for item in transc:                             # make seperate lists of items and transcripts
+#         speakers.append(item[0])
+#         dialogs.append(item[1])
+#     dialogs, sub_to_speaker = tokenizer(dialogs), {}
+#
+#     sub_to_speaker = [0]*len(sub_text)
+#     for sub_index, sub in enumerate(sub_text):
+#         for dialog_index, dialog in enumerate(dialogs):
+#             cnt = 0
+#             for word in sub:
+#                 if word in dialog:  # like trigram comparison
+#                     cnt += 1
+#                     if sub_to_speaker[sub_index] == 0:
+#                         if cnt >= 3 or cnt == len(sub):   # len(sub) because a subtitle may be 2/1 words
+#                             sub_to_speaker[sub_index] = speakers[dialog_index]
+#                         else:
+#                             sub_to_speaker[sub_index] = 0
+#                 else:
+#                     cnt = 0
+#     return sub_to_speaker
+#
+# def shot_to_speakers(sub_to_shot, sub_to_speaker, len_time_stamps):
+#     shot_to_speaker = {}
+#     for i in range(len_time_stamps):
+#         shot_to_speaker[i] = []
+#     for index, character in enumerate(sub_to_speaker):
+#         shot_to_speaker[sub_to_shot[index]].append(character)
+#     for i in range(len(shot_to_speaker)):
+#         shot_to_speaker[i] = list(set([item for item in shot_to_speaker[i] if item != 0]))
+#     return shot_to_speaker
 
 def plot_to_shot_2(speakers_in_plt_sent, shot_to_speaker):                 # used by similarity 2
     # count = 1
@@ -204,8 +208,11 @@ def plot_to_shot_2(speakers_in_plt_sent, shot_to_speaker):                 # use
         plt_shot[i].extend([final_scores[0][0], final_scores[1][0], final_scores[2][0]])
     return plt_shot
 
-def similarity_fn1(time_stamps, sub_to_shot, idf, tf_idf, plot_sentences, plot_to_sub, sub_text, untouched_sub_text, plot_to_shot, query="mike"):
+def similarity_fn1(time_stamps, sub_to_shot, idf, tf_idf, plot_sentences, plot_to_sub, sub_text, untouched_sub_text, plot_to_shot, query):
     temp_q = tokenizer([query])[0]  # tokenizer accepts a list
+    # print "temp query is :", temp_q
+    # print "idf is :", idf
+    # print "tf_idf is : ", tf_idf
     max_sim, max_sim_sentence = sim(temp_q, idf, tf_idf, len(plot_sentences))
     if max_sim_sentence == "None":
         print "Your query does not match any scene in the video"
@@ -219,19 +226,19 @@ def similarity_fn1(time_stamps, sub_to_shot, idf, tf_idf, plot_sentences, plot_t
     print "The matching shot numbers :", plot_to_shot[max_sim_sentence]
     return shot_timestamps, video_descr, shots_list
 
-def query_processor_sim2(plot_sentences, plt_to_shot, time_stamps, query="Jane"):
-    temp_q = tokenizer([query])[0]  # tokenizer accepts a list
-    tf = {}
-    # find term frequency for all plot sentences
-    for index, plot_sentence in enumerate(plot_sentences):
-        tf[index] = termFrequency(plot_sentence)
-    idf = inverseDocumentFrequency(plot_sentences)
-    tf_idf = tfIdf(tf, idf)
-    max_sim, max_sim_sentence = sim(temp_q, idf, tf_idf, len(plot_sentences))
-    if max_sim_sentence == "None":
-        print "Your query does not match any scene in the video"
-        return (-1, -1, -1)
-    print "For query", temp_q, "the highest sim. is with", plot_sentences[max_sim_sentence], "with sim.", max_sim
-    shot_timestamps = [time_stamps[shot] for shot in plt_to_shot[max_sim_sentence]]
-    print "The matching shot numbers :", plt_to_shot[max_sim_sentence]
-    return shot_timestamps, ["blah", "balh", "blah"], plt_to_shot[max_sim_sentence]
+# def query_processor_sim2(plot_sentences, plt_to_shot, time_stamps, query="Jane"):
+#     temp_q = tokenizer([query])[0]  # tokenizer accepts a list
+#     tf = {}
+#     # find term frequency for all plot sentences
+#     for index, plot_sentence in enumerate(plot_sentences):
+#         tf[index] = termFrequency(plot_sentence)
+#     idf = inverseDocumentFrequency(plot_sentences)
+#     tf_idf = tfIdf(tf, idf)
+#     max_sim, max_sim_sentence = sim(temp_q, idf, tf_idf, len(plot_sentences))
+#     if max_sim_sentence == "None":
+#         print "Your query does not match any scene in the video"
+#         return (-1, -1, -1)
+#     print "For query", temp_q, "the highest sim. is with", plot_sentences[max_sim_sentence], "with sim.", max_sim
+#     shot_timestamps = [time_stamps[shot] for shot in plt_to_shot[max_sim_sentence]]
+#     print "The matching shot numbers :", plt_to_shot[max_sim_sentence]
+#     return shot_timestamps, ["blah", "balh", "blah"], plt_to_shot[max_sim_sentence]
