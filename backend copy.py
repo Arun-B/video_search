@@ -2,7 +2,7 @@
 from gevent import monkey; monkey.patch_all()
 import json, io, chardet, unicodedata, os
 from bottle import Bottle, template, static_file, run, request, route, redirect
-import preprocessor    # use preprocessor.module to use that module
+import preprocessor
 from nltk.tokenize import word_tokenize
 
 app = Bottle()
@@ -15,170 +15,158 @@ DIR_PLTSUB = {'DD': '/Users/arun/Movies/Daredevil/DD_PLTSUB', 'BCS':'/Users/arun
 DIR_SUBSHOT = {'DD': '/Users/arun/Movies/Daredevil/DD_SUBSHOT', 'BCS':'/Users/arun/Movies/BetterCallSaul/BCS_SUBSHOT'}
 DIR_PLOTSHOT = {'DD': '/Users/arun/Movies/Daredevil/DD_PLOTSHOT', 'BCS':'/Users/arun/Movies/BetterCallSaul/BCS_PLOTSHOT'}
 DIR_TRANSC = {'DD': '/Users/arun/Movies/Daredevil/DD_TRANSCRIPTS', 'BCS':'/Users/arun/Movies/BetterCallSaul/BCS_TRANSCRIPTS'}
-#file_names = {'DD': ['DDS1E01', 'DDS1E02', 'DDS1E03', 'DDS1E04'], 'BCS': ['BCS1E01', 'BCS1E02', 'BCS1E03', 'BCS1E04', 'BCS1E05', 'BCS1E06', 'BCS1E07', 'BCS1E08', 'BCS1E09', 'BCS1E10']}
-
-# the names of the video files on disk (without their .mp4 extension)
-video_file_names = {}
-for show in list_of_shows:
-    # store the names of all files in the path that end with a .mp4 extension
-    video_file_names[show] = [i[:-4] for i in os.listdir(DIR_VIDS[show]) if i.endswith('.mp4')]
-    video_file_names[show].sort()
+file_names = {'DD': ['DDS1E01', 'DDS1E02', 'DDS1E03', 'DDS1E04'], 'BCS': ["BCS1E01", "BCS1E02", "BCS1E03", "BCS1E04", "BCS1E05", "BCS1E06", "BCS1E07", "BCS1E08", "BCS1E09", "BCS1E10"]} # to ignore the DS file in mac
 
 # for example no_episodes can contain {'DD': 4, 'BCS': 10}
 no_episodes = {}
 for show in list_of_shows:
-    no_episodes[show] = len(video_file_names[show])
+    no_episodes[show] = len(file_names[show])
+
+# the names of the video files on disk
+# can this be replaced by automatic listdir at the directory?
+video_file_names = {'DD': ['DDS1E01', 'DDS1E02', 'DDS1E03', 'DDS1E04'], 'BCS': ["Better.Call.Saul.S01E01.HDTV.x264-KILLERS", "better.call.saul.102.hdtv-lol", "better.call.saul.103.hdtv-lol", "better.call.saul.104.hdtv-lol", "better.call.saul.105.hdtv-lol", "BCS1E06", "better.call.saul.S01E07", "BCS1E08", "BCS1E09", "better.call.saul.110.hdtv-lol"]}
 
 # storing time and scene stamps for multiple shows
-# time stamp is a list of transition points between shows
-# scene_stamps is a list of the duration of scenes
+# each show will
 time_stamps, scene_stamps = {}, {}
 for show in list_of_shows:
-    time_stamps[show], scene_stamps[show] = {}, {}
-    for episode_name in video_file_names[show]:
-        time_stamps[show][episode_name] = None
-        scene_stamps[show][episode_name] = None
+    time_stamps[show], scene_stamps[show] = [], []
 
-# retrieve time_stamps and scene_stamps from disk copies (if they exist)
+# time and scene stamps are actually lists
 for show in list_of_shows:
-    for episode_name in video_file_names[show]:
-        time_stamps_path = DIR_STAMPS[show]+'/'+episode_name+'_timestamps.json'
-        scene_stamps_path = DIR_STAMPS[show]+'/'+episode_name+'_scenestamps.json'
+    for vid_file_name in video_file_names[show]:
+        time_stamps_path = DIR_STAMPS[show]+'/'+vid_file_name+'_proc_ts.json'
+        scene_stamps_path = DIR_STAMPS[show]+'/'+vid_file_name+'_proc_ss.json'
         try:
             with open(time_stamps_path, 'r') as fp1, open(scene_stamps_path, 'r') as fp2:
-                time_stamps[show][episode_name] = json.load(fp1)
-                scene_stamps[show][episode_name] = json.load(fp2)
+                time_stamps[show].append(json.load(fp1))
+                scene_stamps[show].append(json.load(fp2))
         except IOError:
-        # if no time_stamps/scene_stamps exist, fetch them and store a copy on disk
-        # the get scene_stamps function gets time and scene_stamps
-            episode_path = DIR_VIDS[show]+'/'+episode_name+'.mp4'
-            result = preprocessor.get_scene_stamps(episode_path)
-            time_stamps[show][episode_name] = result['time_stamps']
-            scene_stamps[show][episode_name] = result['scene_stamps']
-            # json converts tuples into lists
             with open(time_stamps_path, 'w') as fp1, open(scene_stamps_path, 'w') as fp2:
-                json.dump(time_stamps[show][episode_name], fp1)
-                json.dump(scene_stamps[show][episode_name], fp2)
+                t1, t2 = preprocessor.get_scene_stamps(DIR_VIDS[show]+"/"+vid_file_name+".mp4")
+                time_stamps[show].append(t1)
+                scene_stamps[show].append(t2)
+                json.dump(time_stamps[show][-1], fp1)
+                json.dump(scene_stamps[show][-1], fp2)
 
 # process and store the plot on the drive
 plot_sentences = {}
 for show in list_of_shows:
-    plot_sentences[show] = {}
+    plot_sentences[show] = []
 
 for show in list_of_shows:
-    for episode_name in video_file_names[show]:
+    for plot in file_names[show]:
     # storing the processed part in json
-        file_path = DIR_PLOTS[show]+'/'+episode_name+'_proc_plot.json'
+        file_path = DIR_PLOTS[show]+"/"+plot+"_proc_plot.json"
         try:
             with open(file_path, 'r') as fp:
-                plot_sentences[show][episode_name] = json.load(fp)
+                plot_sentences[show].append(json.load(fp))
         except IOError:
-            plot_sentences[show][episode_name] = preprocessor.fetch_plot_data(DIR_PLOTS[show]+'/'+episode_name+'_plot.txt')
             with open(file_path, 'w') as fp:
-                json.dump(plot_sentences[show][episode_name], fp)
+                plot_sentences[show].append(preprocessor.fetch_plot_data(DIR_PLOTS[show]+"/"+plot+"_plot.txt"))
+                json.dump(plot_sentences[show][-1], fp)
 
 # should run only the first time!
 # preprocess the srt files and convert them to utf-8
 # is destructive
-# for show in list_of_shows:
-#     for f in video_file_names[show]:
-#         file_path = DIR_SUBS[show]+'/'+f+'.srt'
-#         if chardet.detect(file_path)['encoding'] not in ['utf-8', 'ascii']:
-#             data = open(file_path).read()
-#             with open(file_path, 'w') as fp:
-#                 fp.write(data.decode(char.detect(file_path)['encoding']).encode('utf-8'))
+for show in list_of_shows:
+    for f in file_names[show]:
+        file_path = DIR_SUBS[show]+'/'+f+'.srt'
+        if chardet.detect(file_path)['encoding'] not in ['utf-8', 'ascii']:
+            data = open(file_path).read()
+            with open(file_path, 'w') as fp:
+                fp.write(data.decode('Windows-1252').encode('utf-8'))
+                fp.write(data.decode(char.detect(file_path)['encoding']).encode('utf-8'))
 # alternatively for the last line -> instead of windows use detected value
 
-sub_stamps, sub_text, raw_sub_text = {}, {}, {}
+sub_stamps, sub_text, untouched_sub_text = {}, {}, {}
 for show in list_of_shows:
-    sub_stamps[show], sub_text[show], raw_sub_text[show] = {}, {}, {}
+    sub_stamps[show], sub_text[show], untouched_sub_text[show] = [], [], []
 
 for show in list_of_shows:
-    for episode_name in video_file_names[show]:
+    for sub_file in file_names[show]:
         # storing the processed part in json
-        sub_stamps_path = DIR_SUBS[show]+'/'+episode_name+'_proc_sub_st.json'
-        sub_text_path = DIR_SUBS[show]+'/'+episode_name+'_proc_sub_tx.json'
-        sub_unttext_path = DIR_SUBS[show]+'/'+episode_name+'_proc_sub_untx.json'
+        sub_stamps_path = DIR_SUBS[show]+'/'+sub_file+'_proc_sub_st.json'
+        sub_text_path = DIR_SUBS[show]+'/'+sub_file+'_proc_sub_tx.json'
+        sub_unttext_path = DIR_SUBS[show]+'/'+sub_file+'_proc_sub_untx.json'
         temp_path = DIR_SUBS[show]+'/'+'temp.srt'
         try:
             with open(sub_stamps_path, 'r') as fp1, open(sub_text_path, 'r') as fp2, open(sub_unttext_path, 'r') as fp3:
-                sub_stamps[show][episode_name] = json.load(fp1)
-                sub_text[show][episode_name] = json.load(fp2)
-                raw_sub_text[show][episode_name] = json.load(fp3)
+                sub_stamps[show].append(json.load(fp1))
+                sub_text[show].append(json.load(fp2))
+                untouched_sub_text[show].append(json.load(fp3))
         except IOError:
-            # is this required?
-            with io.open(DIR_SUBS[show]+'/'+episode_name+'.srt', 'r', encoding='utf-8') as sub,  open(temp_path, 'w') as temp_fp:
-                # temporary file containing semi preprocessed subtitle
-                # don't use if doing preprocessing?
-                temp_fp.write(unicodedata.normalize('NFKD', sub.read()).encode('ascii', 'ignore'))  # replace unicode chars with closest equivalents
-            result = preprocessor.fetch_subtitle_data(temp_path)
-            sub_stamps[show][episode_name] = result['sub_stamps']
-            sub_text[show][episode_name] = result['sub_text']
-            raw_sub_text[show][episode_name] = result['raw_sub_text']
             with open(sub_stamps_path, 'w') as fp1, open(sub_text_path, 'w') as fp2, open(sub_unttext_path, 'w') as fp3:
-                json.dump(sub_stamps[show][episode_name], fp1)
-                json.dump(sub_text[show][episode_name], fp2)
-                json.dump(raw_sub_text[show][episode_name], fp3)
+                with io.open(DIR_SUBS[show]+'/'+sub_file+'.srt', 'r', encoding='utf-8') as sub,  open(temp_path, 'w') as temp_fp:
+                    # temporary file containing semi preprocessed subtitle
+                    # don't use if doing preprocessing?
+                    temp_fp.write(unicodedata.normalize('NFKD', sub.read()).encode('ascii', 'ignore'))  # replace unicode chars with closest equivalents
+                t1, t2, t3 = preprocessor.fetch_subtitle_data(temp_path)
+                sub_stamps[show].append(t1)
+                sub_text[show].append(t2)
+                untouched_sub_text[show].append(t3)
+                json.dump(sub_stamps[show][-1], fp1)
+                json.dump(sub_text[show][-1], fp2)
+                json.dump(untouched_sub_text[show][-1], fp3)
 
 # for plot to subtitle mapping in a variable
 plot_to_sub, idf, tf_idf = {}, {}, {}
 for show in list_of_shows:
-    plot_to_sub[show] = {}
-    idf[show] = {}
-    tf_idf[show] = {}
+    plot_to_sub[show] = [None for i in range(no_episodes[show])]
+    idf[show] = [None for i in range(no_episodes[show])]
+    tf_idf[show] = [None for i in range(no_episodes[show])]
 
 for show in list_of_shows:
-    for episode_name in video_file_names[show]:
-        plot_to_sub_path = DIR_PLTSUB[show]+'/'+episode_name+'_proc_pltsub.json'
-        idf_path = DIR_PLTSUB[show]+'/'+episode_name+'_idf.json'
-        tf_idf_path = DIR_PLTSUB[show]+'/'+episode_name+'_tf_idf.json'
+    for index, vid_file in enumerate(file_names[show]):
+        plot_to_sub_path = DIR_PLTSUB[show]+'/'+vid_file+'_proc_pltsub.json'
+        idf_path = DIR_PLTSUB[show]+'/'+vid_file+'_idf.json'
+        tf_idf_path = DIR_PLTSUB[show]+'/'+vid_file+'_tf_idf.json'
         try:
             with open(plot_to_sub_path, 'r') as fp1, open(idf_path, 'r') as fp2, open(tf_idf_path, 'r') as fp3:
-                plot_to_sub[show][episode_name] = json.load(fp1)
-                idf[show][episode_name] = json.load(fp2)
-                tf_idf[show][episode_name] = {int(k):v for k,v in json.load(fp3).items()}
+                plot_to_sub[show][index] = json.load(fp1)
+                idf[show][index] = json.load(fp2)
+                tf_idf[show][index] = {int(k):v for k,v in json.load(fp3).items()}
         except IOError:
-            result = preprocessor.plot_sub_assigner(plot_sentences[show][episode_name], sub_text[show][episode_name])
-            plot_to_sub[show][episode_name] = result['plot_to_sub']
-            idf[show][episode_name] = result['idf']
-            tf_idf[show][episode_name] = result['tf_idf']
             with open(plot_to_sub_path, 'w') as fp1, open(idf_path, 'w') as fp2, open(tf_idf_path, 'w') as fp3:
-                json.dump(plot_to_sub[show][episode_name], fp1)
-                json.dump(idf[show][episode_name], fp2)
-                json.dump(tf_idf[show][episode_name], fp3)
+                t1, t2, t3 = preprocessor.plot_sub_assigner(plot_sentences[show][index], sub_text[show][index])
+                plot_to_sub[show][index], idf[show][index], tf_idf[show][index] = t1, t2, t3
+                json.dump(plot_to_sub[show][index], fp1)
+                json.dump(idf[show][index], fp2)
+                json.dump(tf_idf[show][index], fp3)
 
 # subtitle to shot mapping
 sub_to_shot = {}
 for show in list_of_shows:
-    sub_to_shot[show] = {}
+    sub_to_shot[show] = [None for i in range(no_episodes[show])]
 
 for show in list_of_shows:
-    for episode_name in video_file_names[show]:
-        sub_to_shot_path = DIR_SUBSHOT[show]+'/'+episode_name+'_proc_subshot.json'
+    for index, vid_file in enumerate(file_names[show]):
+        # storing the processed part in json
+        sub_to_shot_path = DIR_SUBSHOT[show]+'/'+vid_file+'_proc_subshot.json'
         try:
             with open(sub_to_shot_path, 'r') as fp1:
-                sub_to_shot[show][episode_name] = json.load(fp1)
+                sub_to_shot[show][index] = json.load(fp1)
         except IOError:
-            sub_to_shot[show][episode_name] = preprocessor.sub_shot_assigner(sub_stamps[show][episode_name], scene_stamps[show][episode_name])
             with open(sub_to_shot_path, 'w') as fp1:
-                json.dump(sub_to_shot[show][episode_name], fp1)
+                sub_to_shot[show][index] = preprocessor.sub_shot_assigner(sub_stamps[show][index], scene_stamps[show][index])
+                json.dump(sub_to_shot[show][index], fp1)
 
 # plot to shot mapping
 plot_to_shot = {}
 for show in list_of_shows:
-    plot_to_shot[show] = {}
+    plot_to_shot[show] = [None for i in range(no_episodes[show])]
 
 for show in list_of_shows:
-    for episode_name in video_file_names[show]:
+    for index, vid_file in enumerate(file_names[show]):
         # storing the processed part in json
-        plot_to_shot_path = DIR_PLOTSHOT[show]+'/'+episode_name+'_proc_plotshot.json'
+        plot_to_shot_path = DIR_PLOTSHOT[show]+'/'+vid_file+'_proc_plotshot.json'
         try:
             with open(plot_to_shot_path, 'r') as fp1:
-                plot_to_shot[show][episode_name] = json.load(fp1)
+                plot_to_shot[show][index] = json.load(fp1)
         except IOError:
-            plot_to_shot[show][episode_name] = preprocessor.plot_shot_assigner(plot_to_sub[show][episode_name], sub_to_shot[show][episode_name])
             with open(plot_to_shot_path, 'w') as fp1:
-                json.dump(plot_to_shot[show][episode_name], fp1)
+                plot_to_shot[show][index] = preprocessor.plot_shot_assigner(plot_to_sub[show][index], sub_to_shot[show][index])
+                json.dump(plot_to_shot[show][index], fp1)
 
 # fetch transcripts
 # fetching transcripts depends on the availability of one...
@@ -200,13 +188,12 @@ for show in list_of_shows:
             # for the first time
             transc_text = preprocessor.get_transcript_data(DIR_TRANSC[show]+'/'+f+'.txt')
             # preprocessing for transcripts
-            utx = [None for i in range(len(raw_sub_text[show][f[:-7]]))]
-            for i, j in enumerate(raw_sub_text[show][f[:-7]]):
+            utx = [None for i in range(len(untouched_sub_text[show][file_names[show].index(f[:-7])]))]
+            for i, j in enumerate(untouched_sub_text[show][file_names[show].index(f[:-7])]):
                 temp_i = word_tokenize(j.lower())
-                temp_i = [k for k in temp_i if k not in ['...', "''",  ".", "!", "?", ",", "``", "--", "[", "]", "<", ">", ';', "/", "(", ")", "-"]]
+                temp_i = [k for k in temp_i if k not in ["...", "''",  ".", "!", "?", ",", "``", "--", "[", "]", "<", ">", "/", "(", ")", "-"]]
                 utx[i] = temp_i
-            transc_stamps = preprocessor.get_transcript_stamps1(utx, transc_text, sub_stamps[show][f[:-7]])
-            transc_stamps = preprocessor.get_transcript_stamps2(transc_stamps)
+            transc_stamps = preprocessor.get_transcript_stamps(utx, transc_text, sub_stamps[show][file_names[show].index(f[:-7])])
             action_stamps[show][f[:-7]] = preprocessor.get_action_stamps(transc_text, transc_stamps)
             with open(file_path, 'w') as fp:
                 json.dump(action_stamps[show][f[:-7]], fp)
@@ -269,24 +256,15 @@ def query_parse(show_name, episode_num, query): # arbitrary name
     # caching of 3 queries for faster retrieval can be done here...
     global shot_timestamps, video_descr, shots_list
     print "Searching through episode number :", episode_num
-    episode_name = video_file_names[show_name][episode_num]
-    result = preprocessor.similarity_fn1(time_stamps[show_name][episode_name], sub_to_shot[show_name][episode_name], idf[show_name][episode_name], tf_idf[show_name][episode_name], plot_sentences[show_name][episode_name], plot_to_sub[show_name][episode_name], sub_text[show_name][episode_name], raw_sub_text[show_name][episode_name], plot_to_shot[show_name][episode_name], query)
-    shot_timestamps = result['shot_timestamps']
-    video_descr = result['video_descr']
-    shots_list, max_sim1 = result['shots_list'], result['max_sim']
-    if (shot_timestamps == -1):
-        redirect('/search/'+show_name+'/'+str(episode_num)+'/query/NaQ')
-    #print len(shot_timestamps), len(shots_list)
-    #raw_input('wait here')
-    # max sim sentence is a number
-    max_sim2, max_sim_sentence = preprocessor.similarity_fn2(action_stamps[show_name][episode_name], query)
-    u = action_stamps[show_name][episode_name][max_sim_sentence]
+    shot_timestamps, video_descr, shots_list, m = preprocessor.similarity_fn1(time_stamps[show_name][episode_num], sub_to_shot[show_name][episode_num], idf[show_name][episode_num], tf_idf[show_name][episode_num], plot_sentences[show_name][episode_num], plot_to_sub[show_name][episode_num], sub_text[show_name][episode_num], untouched_sub_text[show_name][episode_num], plot_to_shot[show_name][episode_num], query)
+    max_sim, max_sim_sentence = preprocessor.similarity_fn2(action_stamps[show_name][file_names[show_name][episode_num]], query)
+    u = action_stamps[show_name][file_names[show_name][episode_num]][max_sim_sentence]
     a_shot_timestamp, a_video_descr = u[1][0], ' '.join(u[0])
     try:# or if no results
-        if max_sim2 >= max_sim1:
+        if max_sim >= m:
             shot_timestamps[0] = a_shot_timestamp
             video_descr[0] = a_video_descr
-            print 'replace hua!', max_sim2
+            print 'replace hua!', max_sim
     except:
         print 'No replace'
     print "The values are", shot_timestamps, video_descr
@@ -315,13 +293,13 @@ def top_result(show_name, episode_num, res_number):
         links = [0, 1]
         temp1.extend([shots_list[0], shots_list[1]])
         temp2.extend([video_descr[0], video_descr[1]])
-    return template("results_page", link_to=links, show_name=show_name, shot_timestamp=shot_timestamps[res_number], sub_fin=temp2, ts_ind=temp1, ep_name=video_file_names[show_name][episode_num], ep_num=str(episode_num), video_path=DIR_VIDS[show_name]+'/'+video_file_names[show_name][episode_num]+'.mp4')
+    return template("results_page", link_to=links, show_name=show_name, shot_timestamp=shot_timestamps[res_number], sub_fin=temp2, ts_ind=temp1, ep_name=file_names[show_name][episode_num], ep_num=str(episode_num), video_path=DIR_VIDS[show_name]+'/'+video_file_names[show_name][episode_num]+'.mp4')
 
 # search specific assets
 @app.route('/search/<show_name>/<episode_num:int>/query/single')
 def single_result(show_name, episode_num):
     print "display only result"
-    return template("results_page_single", shot_timestamp=shot_timestamps[0], show_name=show_name, video_path=DIR_VIDS[show_name]+'/'+video_file_names[show_name][episode_num]+".mp4", ep_num=str(episode_num))
+    return template("results_page_single", shot_timestamp=shot_timestamps[0], show_name=show_name, video_path=DIR_VIDS[show_name]+"/"+video_file_names[show_name][episode_num]+".mp4", ep_num=str(episode_num))
 
 @app.route('/search/<show_name>/<episode_num:int>/query/NaQ')
 def no_result(show_name, episode_num):
@@ -382,5 +360,6 @@ def static_server(filename):
 # @app.route('/Users/arun/Movies/BetterCallSaul/thumbnails/<ep_name>/<filename>')
 # def static_server(ep_name, filename):
 #     return static_file(filename, root="/Users/arun/Movies/BetterCallSaul/thumbnails/"+ep_name)
+
 
 run(app, host='127.0.0.1', port=8080, server='gevent')
