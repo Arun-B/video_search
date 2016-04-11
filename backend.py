@@ -5,6 +5,7 @@ from bottle import Bottle, template, static_file, run, request, route, redirect
 import preprocessor    # use preprocessor.module to use that module
 from nltk.tokenize import word_tokenize
 
+# run the app for fewer episodes with better query support
 app = Bottle()
 list_of_shows = ['DD', 'BCS']
 DIR_PLOTS = {'DD': '/Users/arun/Movies/Daredevil/DD_PLOTS', 'BCS':'/Users/arun/Movies/BetterCallSaul/BCS_PLOTS'}
@@ -15,7 +16,6 @@ DIR_PLTSUB = {'DD': '/Users/arun/Movies/Daredevil/DD_PLTSUB', 'BCS':'/Users/arun
 DIR_SUBSHOT = {'DD': '/Users/arun/Movies/Daredevil/DD_SUBSHOT', 'BCS':'/Users/arun/Movies/BetterCallSaul/BCS_SUBSHOT'}
 DIR_PLOTSHOT = {'DD': '/Users/arun/Movies/Daredevil/DD_PLOTSHOT', 'BCS':'/Users/arun/Movies/BetterCallSaul/BCS_PLOTSHOT'}
 DIR_TRANSC = {'DD': '/Users/arun/Movies/Daredevil/DD_TRANSCRIPTS', 'BCS':'/Users/arun/Movies/BetterCallSaul/BCS_TRANSCRIPTS'}
-#file_names = {'DD': ['DDS1E01', 'DDS1E02', 'DDS1E03', 'DDS1E04'], 'BCS': ['BCS1E01', 'BCS1E02', 'BCS1E03', 'BCS1E04', 'BCS1E05', 'BCS1E06', 'BCS1E07', 'BCS1E08', 'BCS1E09', 'BCS1E10']}
 
 # the names of the video files on disk (without their .mp4 extension)
 video_file_names = {}
